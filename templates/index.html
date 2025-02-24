@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>KUB Bill Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>KUB Monthly Bill Trends</h2>
+    <canvas id="billChart"></canvas>
+    
+    <script>
+        const ctx = document.getElementById('billChart').getContext('2d');
+
+        const bills = {{ bills | tojson }};
+        
+        const months = [...new Set(bills.map(b => b.month_year.split("-")[0]))];
+        const years = [...new Set(bills.map(b => b.month_year.split("-")[2]))].sort();
+
+        const datasets = years.map(year => ({
+            label: year,
+            data: months.map(month => {
+                const bill = bills.find(b => b.month_year.startsWith(month) && b.month_year.endsWith(year));
+                return bill ? bill.amount : 0;
+            }),
+            backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.6)`
+        }));
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
