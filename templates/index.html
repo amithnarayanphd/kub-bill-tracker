@@ -1,44 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>KUB Bill Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUB Monthly Bill Trends</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            color: #212529;
+            font-size: 30px;
+            margin-top: 20px;
+        }
+        .chart-container {
+            width: 100vw;
+	    height: 80vh; 
+            max-width: 90%;
+            margin: 30px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
 </head>
 <body>
     <h2>KUB Monthly Bill Trends</h2>
-    <canvas id="billChart"></canvas>
-    
+    <div class="chart-container">
+        <canvas id="billChart"></canvas>
+    </div>
+
     <script>
         const ctx = document.getElementById('billChart').getContext('2d');
 
+        // Get bills from Flask
         const bills = {{ bills | tojson }};
-        
-        const months = [...new Set(bills.map(b => b.month_year.split("-")[0]))];
+
+        // Define months in correct order
+        const monthOrder = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+        const monthNames = {
+            "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "May", "6": "Jun",
+            "7": "Jul", "8": "Aug", "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
+        };
+
+        // Extract unique years and sort them
         const years = [...new Set(bills.map(b => b.month_year.split("-")[2]))].sort();
 
-        const datasets = years.map(year => ({
-            label: year,
-            data: months.map(month => {
-                const bill = bills.find(b => b.month_year.startsWith(month) && b.month_year.endsWith(year));
-                return bill ? bill.amount : 0;
+        // Define better color palette (sharp colors)
+        const colorPalette = [
+            "rgba(255, 99, 132, 0.8)",   // Bright Red
+            "rgba(54, 162, 235, 0.8)",   // Vivid Blue
+            "rgba(255, 206, 86, 0.8)",   // Yellow Gold
+            "rgba(75, 192, 192, 0.8)",   // Teal
+            "rgba(153, 102, 255, 0.8)",  // Purple
+            "rgba(255, 159, 64, 0.8)",   // Orange
+            "rgba(233, 30, 99, 0.8)",    // Deep Pink
+            "rgba(0, 188, 212, 0.8)",    // Cyan
+            "rgba(66, 133, 244, 0.8)",   // Google Blue
+            "rgba(52, 168, 83, 0.8)",    // Google Green
+        ];
+
+        // Organize data month-wise for every year
+        let datasets = years.map((year, index) => ({
+            label: `Year ${year}`,
+            data: monthOrder.map(month => {
+                let bill = bills.find(b => b.month_year.startsWith(month) && b.month_year.endsWith(year));
+                return bill ? bill.amount : null; // Ensures all months are plotted
             }),
-            backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.6)`
+            backgroundColor: colorPalette[index % colorPalette.length],
+            borderColor: colorPalette[index % colorPalette.length].replace("0.8", "1"), // Sharper border
+            borderWidth: 1.5,
+            barPercentage: 0.4,  // Prevents overlapping
+            categoryPercentage: 0.9  // Adjusts spacing between groups
         }));
 
+        // Chart configuration
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: months,
+                labels: monthOrder.map(m => monthNames[m]),  // Show actual month names
                 datasets: datasets
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'top' }
+                    legend: { position: 'top', labels: { font: { size: 14, weight: "bold" } } }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: "Months", font: { size: 16, weight: "bold" } },
+                        ticks: { font: { size: 14, weight: "bold" }, color: "#333" },
+                        grid: { display: false }
+                    },
+                    y: {
+                        title: { display: true, text: "Bill Amount ($)", font: { size: 16, weight: "bold" } },
+                        ticks: { font: { size: 14, weight: "bold" }, color: "#333", callback: value => `$${value.toFixed(2)}` },
+                        grid: { color: "rgba(150, 150, 150, 0.3)", lineWidth: 1.2 } // Adds horizontal gridlines
+                    }
+                },
+                elements: {
+                    bar: {
+                        borderRadius: 4, // Slight 3D effect
+                        borderSkipped: false,
+                    }
                 }
             }
         });
     </script>
 </body>
 </html>
-
