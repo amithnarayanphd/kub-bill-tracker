@@ -1,11 +1,9 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template
 import sqlite3
-import pandas as pd
 
 app = Flask(__name__)
 
 def get_billing_data():
-    """Fetch bills data from SQLite database."""
     conn = sqlite3.connect("kub_bills.db")
     cursor = conn.cursor()
     cursor.execute("SELECT month_year, amount FROM bills ORDER BY month_year DESC")
@@ -13,10 +11,12 @@ def get_billing_data():
     conn.close()
     return bills
 
-@app.route('/get_bills', methods=['GET'])
-def get_bills():
-    return jsonify(get_billing_data())
+@app.route('/')
+def index():
+    bills = get_billing_data()
+    return render_template('index.html', bills=bills)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Use Render's assigned port
+    import os
+    port = int(os.environ.get("PORT", 10000))  # Render assigns a dynamic port
     app.run(host="0.0.0.0", port=port)
